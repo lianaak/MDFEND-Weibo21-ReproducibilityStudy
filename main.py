@@ -16,6 +16,7 @@ parser.add_argument('--bert_emb_dim', type=int, default=768)
 parser.add_argument('--w2v_emb_dim', type=int, default=200)
 parser.add_argument('--lr', type=float, default=0.0005)
 parser.add_argument('--emb_type', default='bert')
+parser.add_argument('--category', default='0')
 parser.add_argument('--w2v_vocab_file', default='./pretrained_model/w2v/Tencent_AILab_Chinese_w2v_model.kv')
 parser.add_argument('--save_param_dir', default= './param_model')
 
@@ -65,7 +66,8 @@ config = {
         'epoch': args.epoch,
         'model_name': args.model_name,
         'seed': args.seed,
-        'save_param_dir': args.save_param_dir
+        'save_param_dir': args.save_param_dir,
+        'category': args.category
         }
 
 

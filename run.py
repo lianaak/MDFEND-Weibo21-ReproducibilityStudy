@@ -41,6 +41,7 @@ class Run():
         self.weight_decay = config['weight_decay']
         self.epoch = config['epoch']
         self.save_param_dir = config['save_param_dir']
+        self.category = config['category']
 
         self.train_path = self.root_path + 'train.pkl'
         self.val_path = self.root_path + 'val.pkl'
@@ -59,9 +60,10 @@ class Run():
         }
 
     def get_dataloader(self):
+
         if self.emb_type == 'bert':
             loader = bert_data(max_len = self.max_len, batch_size = self.batchsize, vocab_file = self.vocab_file,
-                        category_dict = self.category_dict, num_workers=self.num_workers)
+                        category_dict = self.category_dict, num_workers=self.num_workers, model_name = self.model_name, single_category = self.category)
         elif self.emb_type == 'w2v':
             loader = w2v_data(max_len=self.max_len, vocab_file=self.vocab_file, emb_dim = self.emb_dim,
                     batch_size=self.batchsize, category_dict=self.category_dict, num_workers= self.num_workers)

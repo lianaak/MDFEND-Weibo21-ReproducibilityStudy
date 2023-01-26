@@ -37,18 +37,26 @@ def word2input(texts, vocab_file, max_len):
     return token_ids, masks
 
 class bert_data():
-    def __init__(self, max_len, batch_size, vocab_file, category_dict, num_workers=2):
+    def __init__(self, max_len, batch_size, vocab_file, category_dict, num_workers=2, model_name='mdfend', single_category=0):
         self.max_len = max_len
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.vocab_file = vocab_file
         self.category_dict = category_dict
+        self.model_name = model_name
+        self.single_category = single_category
     
     def load_data(self, path, shuffle):
         self.data = df_filter(read_pkl(path))
         content = self.data['content'].to_numpy()
         label = torch.tensor(self.data['label'].astype(int).to_numpy())
         category = torch.tensor(self.data['category'].apply(lambda c: self.category_dict[c]).to_numpy())
+        if self.model_name == 'bert_single':
+            indices = (category == int(self.single_category)).nonzero(as_tuple=True)[0]
+            content = content[indices]
+            label = label[indices]
+            category = category[indices]
+
         content_token_ids, content_masks = word2input(content, self.vocab_file, self.max_len)
         dataset = TensorDataset(content_token_ids,
                                 content_masks,
