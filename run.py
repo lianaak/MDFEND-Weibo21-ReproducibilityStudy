@@ -15,7 +15,7 @@ from copy import deepcopy
 
 from utils.utils import Averager
 from utils.dataloader import bert_data
-from models.mdfend import Trainer as MDFENDTrainer
+from models.mdfend import Trainer as Trainer
 
 class Run():
     def __init__(self,
@@ -78,8 +78,7 @@ class Run():
 
     def main(self):
         train_loader, val_loader, test_loader = self.get_dataloader()
-        if self.model_name == 'mdfend':
-            trainer = MDFENDTrainer(emb_dim = self.emb_dim, mlp_dims = self.mlp_dims, bert = self.bert, emb_type = self.emb_type,
-                use_cuda = self.use_cuda, lr = self.lr, train_loader = train_loader, dropout = self.dropout, weight_decay = self.weight_decay, val_loader = val_loader, test_loader = test_loader, category_dict = self.category_dict, early_stop = self.early_stop, epoches = self.epoch,
-                save_param_dir = os.path.join(self.save_param_dir, self.model_name))    
+        trainer = Trainer(emb_dim = self.emb_dim, mlp_dims = self.mlp_dims, bert = self.bert, emb_type = self.emb_type,
+            use_cuda = self.use_cuda, lr = self.lr, train_loader = train_loader, dropout = self.dropout, weight_decay = self.weight_decay, val_loader = val_loader, test_loader = test_loader, category_dict = self.category_dict, early_stop = self.early_stop, epoches = self.epoch,
+            save_param_dir = os.path.join(self.save_param_dir, self.model_name), model_name = self.model_name)
         trainer.train()

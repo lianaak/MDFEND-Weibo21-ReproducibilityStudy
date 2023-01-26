@@ -63,6 +63,51 @@ class MultiDomainFENDModel(torch.nn.Module):
 
         return torch.sigmoid(label_pred.squeeze(1))
 
+
+class BERTModel(torch.nn.Module):
+    def __init__(self, emb_dim, mlp_dims, bert, dropout, emb_type ):
+        super(BERTModel, self).__init__()
+        self.domain_num = 9
+        self.gamma = 10
+        self.num_expert = 5
+        self.fea_size =256
+        self.emb_type = emb_type
+        if(emb_type == 'bert'):
+            self.bert = BertModel.from_pretrained(bert).requires_grad_(False)
+        
+        feature_kernel = {1: 64, 2: 64, 3: 64, 5: 64, 10: 64}
+        expert = []
+        for i in range(self.num_expert):
+            expert.append(cnn_extractor(feature_kernel, emb_dim))
+        self.expert = nn.ModuleList(expert)
+
+        self.gate = nn.Sequential(nn.Linear(emb_dim * 2, mlp_dims[-1]),
+                                      nn.ReLU(),
+                                      nn.Linear(mlp_dims[-1], self.num_expert),
+                                      nn.Softmax(dim = 1))
+
+        self.attention = MaskAttention(emb_dim)
+
+        self.domain_embedder = nn.Embedding(num_embeddings = self.domain_num, embedding_dim = emb_dim)
+        self.specific_extractor = SelfAttentionFeatureExtract(multi_head_num = 1, input_size=emb_dim, output_size=self.fea_size)
+        self.classifier = MLP(768, mlp_dims, dropout)
+        
+    
+    def forward(self, **kwargs):
+        inputs = kwargs['content']
+        masks = kwargs['content_masks']
+        category = kwargs['category']
+        if self.emb_type == "bert":
+            init_feature = self.bert(inputs, attention_mask = masks)[0]
+        elif self.emb_type == 'w2v':
+            init_feature = inputs
+
+        mean_pooled = init_feature.sum(axis=1) / masks.sum(axis=-1).unsqueeze(-1)
+        label_pred = self.classifier(mean_pooled)
+        
+
+        return torch.sigmoid(label_pred.squeeze(1))
+
 class Trainer():
     def __init__(self,
                  emb_dim,
@@ -80,7 +125,8 @@ class Trainer():
                  emb_type = 'bert', 
                  loss_weight = [1, 0.006, 0.009, 5e-5],
                  early_stop = 5,
-                 epoches = 100
+                 epoches = 100,
+                 model_name = 'mdfend'
                  ):
         self.lr = lr
         self.weight_decay = weight_decay
@@ -98,6 +144,7 @@ class Trainer():
         self.bert = bert
         self.dropout = dropout
         self.emb_type = emb_type
+        self.model_name = model_name
         
         if not os.path.exists(save_param_dir):
             self.save_param_dir = os.makedirs(save_param_dir)
@@ -108,7 +155,10 @@ class Trainer():
     def train(self, logger = None):
         if(logger):
             logger.info('start training......')
-        self.model = MultiDomainFENDModel(self.emb_dim, self.mlp_dims, self.bert, self.dropout, self.emb_type)
+        if self.model_name == 'mdfend':
+            self.model = MultiDomainFENDModel(self.emb_dim, self.mlp_dims, self.bert, self.dropout, self.emb_type)
+        elif self.model_name == 'bert_single' or self.model_name == 'bert_all':
+            self.model = BERTModel(self.emb_dim, self.mlp_dims, self.bert, self.dropout, self.emb_type)
         if self.use_cuda:
             self.model = self.model.cuda()
         loss_fn = torch.nn.BCELoss()
