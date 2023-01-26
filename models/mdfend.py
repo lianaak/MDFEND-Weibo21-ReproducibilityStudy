@@ -69,26 +69,13 @@ class BERTModel(torch.nn.Module):
         super(BERTModel, self).__init__()
         self.domain_num = 9
         self.gamma = 10
-        self.num_expert = 5
         self.fea_size =256
         self.emb_type = emb_type
         if(emb_type == 'bert'):
             self.bert = BertModel.from_pretrained(bert).requires_grad_(False)
         
-        feature_kernel = {1: 64, 2: 64, 3: 64, 5: 64, 10: 64}
-        expert = []
-        for i in range(self.num_expert):
-            expert.append(cnn_extractor(feature_kernel, emb_dim))
-        self.expert = nn.ModuleList(expert)
-
-        self.gate = nn.Sequential(nn.Linear(emb_dim * 2, mlp_dims[-1]),
-                                      nn.ReLU(),
-                                      nn.Linear(mlp_dims[-1], self.num_expert),
-                                      nn.Softmax(dim = 1))
-
+       
         self.attention = MaskAttention(emb_dim)
-
-        self.domain_embedder = nn.Embedding(num_embeddings = self.domain_num, embedding_dim = emb_dim)
         self.specific_extractor = SelfAttentionFeatureExtract(multi_head_num = 1, input_size=emb_dim, output_size=self.fea_size)
         self.classifier = MLP(768, mlp_dims, dropout)
         
