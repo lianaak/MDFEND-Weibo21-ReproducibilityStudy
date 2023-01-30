@@ -1,5 +1,8 @@
 import os
 import argparse
+import sys
+
+sys.stdout.reconfigure(encoding='UTF-16')
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_name', default='mdfend')
 parser.add_argument('--epoch', type=int, default=50)
@@ -19,6 +22,9 @@ parser.add_argument('--emb_type', default='bert')
 parser.add_argument('--category', default='0')
 parser.add_argument('--w2v_vocab_file', default='./pretrained_model/w2v/Tencent_AILab_Chinese_w2v_model.kv')
 parser.add_argument('--save_param_dir', default= './param_model')
+parser.add_argument('--train', default= './data/weibo21/train.pkl')
+parser.add_argument('--test', default= './data/weibo21/test.pkl')
+parser.add_argument('--val', default= './data/weibo21/val.pkl')
 
 args = parser.parse_args()
 os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
@@ -43,7 +49,7 @@ elif args.emb_type == 'w2v':
     emb_dim = args.w2v_emb_dim
     vocab_file = args.w2v_vocab_file
 
-print('lr: {}; model name: {}; emb_type: {}; batchsize: {}; epoch: {}; gpu: {}; emb_dim: {}'.format(args.lr, args.model_name, args.emb_type,  args.batchsize, args.epoch, args.gpu, emb_dim))
+print('lr: {}; model name: {}; emb_type: {}; batchsize: {}; epoch: {}; gpu: {}; emb_dim: {}; val: {}'.format(args.lr, args.model_name, args.emb_type,  args.batchsize, args.epoch, args.gpu, emb_dim, args.val))
 
 
 config = {
@@ -67,7 +73,10 @@ config = {
         'model_name': args.model_name,
         'seed': args.seed,
         'save_param_dir': args.save_param_dir,
-        'category': args.category
+        'category': args.category,
+        'train': args.train,
+        'test': args.test,
+        'val': args.val
         }
 
 

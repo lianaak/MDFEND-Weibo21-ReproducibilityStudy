@@ -63,6 +63,52 @@ class MultiDomainFENDModel(torch.nn.Module):
 
         return torch.sigmoid(label_pred.squeeze(1))
 
+class TextCNNModel(torch.nn.Module):
+    def __init__(self, emb_dim, mlp_dims, bert, dropout, emb_type ):
+        super(TextCNNModel, self).__init__()
+        self.gamma = 10
+        self.num_expert = 1
+        self.fea_size =256
+        self.emb_type = emb_type
+        if(emb_type == 'bert'):
+            self.bert = BertModel.from_pretrained(bert).requires_grad_(False)
+        
+        feature_kernel = {1: 64, 2: 64, 3: 64, 5: 64, 10: 64}
+        expert = []
+        for i in range(self.num_expert):
+            expert.append(cnn_extractor(feature_kernel, emb_dim))
+        self.expert = nn.ModuleList(expert)
+
+        """
+        self.gate = nn.Sequential(nn.Linear(emb_dim * 2, mlp_dims[-1]),
+                                      nn.ReLU(),
+                                      nn.Linear(mlp_dims[-1], self.num_expert),
+                                      nn.Softmax(dim = 1))
+        """
+
+        self.specific_extractor = SelfAttentionFeatureExtract(multi_head_num = 1, input_size=emb_dim, output_size=self.fea_size)
+        self.classifier = MLP(320, mlp_dims, dropout)
+        
+    
+    def forward(self, **kwargs):
+        inputs = kwargs['content']
+        masks = kwargs['content_masks']
+        category = kwargs['category']
+        if self.emb_type == "bert":
+            init_feature = self.bert(inputs, attention_mask = masks)[0]
+        elif self.emb_type == 'w2v':
+            init_feature = inputs
+        
+        idxs = torch.tensor([index for index in category]).view(-1, 1).cuda()
+
+        shared_feature = 0
+        for i in range(self.num_expert):
+            tmp_feature = self.expert[i](init_feature)
+            shared_feature += tmp_feature 
+
+        label_pred = self.classifier(shared_feature)
+
+        return torch.sigmoid(label_pred.squeeze(1))
 
 class BERTModel(torch.nn.Module):
     def __init__(self, emb_dim, mlp_dims, bert, dropout, emb_type ):
@@ -146,6 +192,8 @@ class Trainer():
             self.model = MultiDomainFENDModel(self.emb_dim, self.mlp_dims, self.bert, self.dropout, self.emb_type)
         elif self.model_name == 'bert_single' or self.model_name == 'bert_all':
             self.model = BERTModel(self.emb_dim, self.mlp_dims, self.bert, self.dropout, self.emb_type)
+        elif self.model_name == 'textcnn_single' or self.model_name == 'textcnn_all':
+            self.model = TextCNNModel(self.emb_dim, self.mlp_dims, self.bert, self.dropout, self.emb_type)
         if self.use_cuda:
             self.model = self.model.cuda()
         loss_fn = torch.nn.BCELoss()
@@ -176,6 +224,7 @@ class Trainer():
             results = self.test(self.val_loader)
             mark = recorder.add(results)
             if mark == 'save':
+                print(self.save_param_dir)
                 torch.save(self.model.state_dict(),
                     os.path.join(self.save_param_dir, 'parameter_mdfend.pkl'))
             elif mark == 'esc':

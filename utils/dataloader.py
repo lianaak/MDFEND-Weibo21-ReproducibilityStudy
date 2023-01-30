@@ -74,13 +74,15 @@ class bert_data():
         return dataloader
 
 class w2v_data():
-    def __init__(self, max_len, batch_size, emb_dim, vocab_file, category_dict, num_workers = 2):
+    def __init__(self, max_len, batch_size, emb_dim, vocab_file, category_dict, num_workers = 2, model_name='textcnn_all', single_category=0):
         self.max_len = max_len
         self.batch_size = batch_size
         self.emb_dim = emb_dim
         self.vocab_file = vocab_file
         self.category_dict = category_dict
         self.num_workers = num_workers
+        self.model_name = model_name
+        self.single_category = single_category
     
     def tokenization(self, content):
         pattern = "&nbsp;|展开全文|秒拍视频|O网页链接|网页链接"
@@ -122,9 +124,16 @@ class w2v_data():
         label = torch.tensor(self.data['label'].astype(int).to_numpy())
         category = torch.tensor(self.data['category'].apply(lambda c: self.category_dict[c]).to_numpy())
 
+        if self.model_name == 'textcnn_single':
+            indices = (category == int(self.single_category)).nonzero(as_tuple=True)[0]
+            content = content[indices]
+            label = label[indices]
+            category = category[indices]
+
         content_token_ids = self.tokenization(content)
         content_masks = self.get_mask(content_token_ids)
         emb_content = self.encode(content_token_ids)
+
 
         dataset = TensorDataset(emb_content,
                                 content_masks,
