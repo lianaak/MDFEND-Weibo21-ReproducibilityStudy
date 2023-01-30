@@ -1,0 +1,1 @@
+Here the outputs will be saved after running ./sequential_training.sh
