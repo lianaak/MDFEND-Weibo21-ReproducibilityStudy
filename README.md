@@ -1,5 +1,5 @@
-# A Reproducibility Study 
-## of MDFEND: Multi-domain Fake News Detection
+# Investigation of Reproducibility 
+## on 'MDFEND: Multi-domain Fake News Detection'
 This is a reproducibility study of the paper [**MDFEND: Multi-domain Fake News Detection**](https://dl.acm.org/doi/abs/10.1145/3459637.3482139) by Nan Q, Cao J, Zhu Y, et al.
 
 The goal of this reproducibility study is to assess the validity of the results presented in the original paper by
